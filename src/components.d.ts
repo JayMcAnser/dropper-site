@@ -7,6 +7,9 @@ export {}
 
 declare module 'vue' {
   export interface GlobalComponents {
+    DButton: typeof import('./components/form/DButton.vue')['default']
+    DCheckbox: typeof import('./components/form/DCheckbox.vue')['default']
+    DText: typeof import('./components/form/DText.vue')['default']
     README: typeof import('./components/README.md')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']

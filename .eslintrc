@@ -1,6 +1,8 @@
 {
+  "rules": {
+    "no-console": "off"
+  },
   "extends": [
-    "@antfu",
-    "@unocss"
+    "@antfu"
   ]
 }

@@ -1,3 +1,11 @@
+<script lang="ts" setup>
+  import { ref, onMounted } from 'vue'
+  import {themeChange} from 'theme-change'
+  onMounted(() => {
+    themeChange(false)
+  })
+</script>
+
 <template>
   <main
     px-4 py-10
