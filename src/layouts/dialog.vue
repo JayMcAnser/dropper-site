@@ -1,3 +1,9 @@
+<script setup lang="ts">
+  import {useUserStore} from "~/stores/user";
+
+  const User = useUserStore()
+
+</script>
 <template>
   <main
       px-4 py-10
@@ -23,7 +29,7 @@
 <!--    </div>-->
     <TheFooter />
     <div mx-auto mt-5 text-center text-sm opacity-50>
-      [Dialog Layout]
+      [Dialog Layout] [logged in: {{User.isLoggedIn}}]
     </div>
   </main>
 </template>

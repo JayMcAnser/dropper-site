@@ -2,7 +2,7 @@ import { acceptHMRUpdate, defineStore } from 'pinia'
 import wcMatch from 'wildcard-match'
 import {computed, reactive, ref} from "vue";
 import {useLoggerStore} from "~/stores/logger";
-import {IApiResult, useApiStore} from "~/stores/api";
+import {IApiResult, ILoginResult, useApiStore} from "~/stores/api";
 
 // import {useCookie} from '@vueuse/integrations/useCookies'
 
@@ -34,7 +34,8 @@ export const useUserStore : IUserStore = defineStore('user', () => {
   const isLoggedIn  = ref(false)
   const username = computed(() => userConfig.username)
   const email = computed(() => userConfig.email)
-  const globalMatch = _compileMatch(['/', '/index', '/user/login', '/about']) // global allowed urls
+  const urlMatchGlobal = _compileMatch(['/', '/index', '/user/login', '/user/create', '/about']) // global allowed urls
+  const urlMatchUser = _compileMatch(['/projects*']) // global allowed urls
 
   function _clear() {
     isLoggedIn.value = false;
@@ -44,13 +45,12 @@ export const useUserStore : IUserStore = defineStore('user', () => {
     userConfig.urlMatch = []
   }
   function _set(values: IUserConfig) {
-    // debugger
-    console.log('LOG IN:', values)
     userConfig.username = values.username || userConfig.username
     userConfig.email = values.email || userConfig.email
     userConfig.urlAccess = values.hasOwnProperty('urlAccess') ? values.urlAccess : userConfig.urlAccess
     userConfig.urlMatch = _compileMatch(userConfig.urlAccess)
-    console.log('urlAccess', userConfig.urlAccess)
+    const Api = useApiStore()
+    isLoggedIn.value = Api.isLoggedIn
   }
 
   function _compileMatch(filters) {
@@ -73,13 +73,24 @@ export const useUserStore : IUserStore = defineStore('user', () => {
    * @param user IUserConfig
    * @return true if user is created
    */
-  async function create(user: IUserConfig) : IApiResult {
+  async function create(user: IUserConfig) : Promise<boolean> {
     const Logger = useLoggerStore()
     Logger.log('creating user', user)
-    return {
-      isError: true,
-      message: 'not implemented'
+    let Api = useApiStore()
+    try {
+      let result = await Api.post('auth/create', user)
+      if (result.isError) {
+        Api.logoff()
+        throw new Error(result.message)
+      }
+      Logger.log('create', result)
+      Api.login(result.body as ILoginResult)
+      _set(result)
+    } catch (e) {
+      Api.logoff()
+      throw new Error(e.message)
     }
+    return true
   }
   /**
    * user logged in, setting default values
@@ -104,12 +115,19 @@ export const useUserStore : IUserStore = defineStore('user', () => {
    * @param url
    * @returns Boolean
    */
-  function hasUrlAccess(url) {
-    if (! _hasAccess(userConfig.urlMatch, url)) {
-      // the global allowed urls
-      return _hasAccess(globalMatch, url)
+  function hasUrlAccess(url): boolean {
+    // debugger
+    if (isLoggedIn && _hasAccess(urlMatchUser, url)) {
+      // standard user
+      return true
+    } else if (_hasAccess(userConfig.urlMatch, url)) {
+      // for special by user
+      return true
+    } else if (_hasAccess(urlMatchGlobal, url)) {
+      // everybody is allowed
+      return true
     }
-    return true;
+    return false;
   }
 
   /**
@@ -126,16 +144,16 @@ export const useUserStore : IUserStore = defineStore('user', () => {
     if (result.isError) {
       throw new Error(result.message)
     }
-    return result.key
+    return result.body.key
   }
 
-  async function usernameUnique(username): Promise<boolean> {
+  async function usernameExists(username): Promise<boolean> {
     let api = useApiStore()
     let result = await api.post('auth/username', {username})
     if (result.isError) {
       throw new Error(result.message)
     }
-    return result.exists
+    return result.body.exists
   }
 
   return {
@@ -150,7 +168,7 @@ export const useUserStore : IUserStore = defineStore('user', () => {
     userConfig,
 
     genMailKey,
-    usernameUnique,
+    usernameExists,
   }
 })
 

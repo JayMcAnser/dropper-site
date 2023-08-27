@@ -13,6 +13,13 @@ export interface IApiResult {
   error?: Error
 }
 
+export interface ILoginResult {
+  email: string
+  username: string
+  token: string
+  refreshToken: string
+}
+
 export interface IFetchOptions {
   asBlob: boolean
   contentType: string
@@ -21,7 +28,7 @@ export interface IFetchOptions {
 export interface IApiStore {
   isLoggedIn: boolean
   // the login for the system
-  login(usr: IUserLogin): boolean
+  login(usr: ILoginResult): boolean
   logoff(): void
   refreshToken: string
   info: any
@@ -54,26 +61,15 @@ export const useApiStore: IApiStore = defineStore('api', () => {
     }
   }
 
-  async function login( user: IUserLogin) : Promise<IApiResult> {
-    let result = await post('auth', {email: user.email, password: user.pasword})
-    if (result.isError) {
-      JWT.value = ''
-      RefreshToken = ''
-      User.loggedOff()
-      Cookies.remove(REFRESH_TOKEN)
-      return result;
-    } else {
-      JWT.value = result.body.token
-      RefreshToken = result.body.refreshToken
-      Cookies.set(REFRESH_TOKEN, RefreshToken)
-      User.loggedIn(result.body)
-      return result
-    }
+  async function login( user: ILoginResult): Boolean {
+    JWT.value = user.token
+    RefreshToken = user.refreshToken
+    Cookies.set(REFRESH_TOKEN, RefreshToken)
   }
+
   async function logoff() {
     JWT.value = ''
     RefreshToken = ''
-    User.loggedOff()
   }
 
   async function refreshToken(): Promise<IApiResult> {
@@ -260,7 +256,7 @@ export const useApiStore: IApiStore = defineStore('api', () => {
       isRefreshToken: options.hasOwnProperty('isRefreshToken')
     }
     if (method === 'POST') {
-      result.body = JSON.stringify(body)
+      result['body'] = JSON.stringify(body)
     }
 
     if (JWT.value.length) {

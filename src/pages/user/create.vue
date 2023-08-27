@@ -5,6 +5,7 @@
   import {useUserStore} from "~/stores/user"
 
   const Logger = useLoggerStore()
+  const Router = useRouter()
   const user: IUserLogin = reactive({
     email: '',
     username: '',
@@ -44,7 +45,9 @@
     usernameError.value = ''
     let User = useUserStore()
     try {
-      return await User.usernameUnique(user.username)
+      if (await User.usernameExists(user.username)) {
+        usernameError.value = 'user already exists'
+      }
     } catch (e) {
       usernameError.value = e.message
     }
@@ -85,11 +88,17 @@
     }
     try {
       let User = useUserStore()
+      // ToDo
+      // should be remove in the production version
+      if (!user.mailKey || user.mailKey.length === 0) {
+        user.mailKey = await User.genMailKey(user.email)
+        Logger.log('Mailkey', user.mailKey)
+      }
+      // end
       let result = await User.create(user)
       if (result.isError) {
         error.value = result.message
       } else {
-        const Router = useRouter()
         Router.push('/projects')
       }
     } catch (e) {
