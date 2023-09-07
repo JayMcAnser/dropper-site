@@ -1,23 +1,28 @@
 <script lang="ts" setup>
-  import { useApiStore }from "~/stores/api"
+  import {useUserStore} from "~/stores/user";
+  import {IUserLogin} from "~/stores/config";
+  import {useRouter} from "vue-router";
 
-  const api = useApiStore()
-  const email = ref('')
-  const password = ref('')
-  const remember = ref(true)
+  const user: IUserLogin = reactive({
+    email: '',
+    username: '',
+    password: '',
+    mailKey: ''
+  })
   const error = ref('')
+  const Router = useRouter()
 
-  const doLogin = async () => {
+  const doLogin = async() => {
+    error.value = ''
+    const User = useUserStore()
     try {
-      error.value = ''
-      let result = await api.login(email.value, password.value)
+      let result = await User.login(user)
       if (result.isError) {
         error.value = result.message
       } else {
-//        debugger
-        console.log(result)
+        Router.push('/projects')
       }
-    } catch(e) {
+    } catch (e) {
       error.value = e.message
     }
   }
@@ -37,15 +42,21 @@
     </div>
 
     <form class="" @submit.prevent="doLogin" >
-      <d-text class="mb-6" v-model="email" label="Type your email address" name="email" > </d-text>
-      <d-text v-model="password" placeholder="username" name="name" label="Password"></d-text>
-      <d-checkbox v-model="remember" label="Remember me" explain="Easy login the next time"/>
+      <d-text
+          class="mb-6"
+          v-model="user.email"
+          label="Email address" name="email" />
+      <d-text
+          v-model="user.password"
+          placeholder="password"
+          type="password"
+          name="name"
+          label="Password" />
+      <!-- <d-checkbox v-model="remember" label="Remember me" explain="Easy login the next time"/> -->
       <div class="w-full text-center">
         <d-button layout="btn-primary" >Login</d-button>
         <d-button url="/">Cancel</d-button>
       </div>
-
-
       The email is {{ email }} this {{username}} {{ remember }}
     </form>
   </div>

@@ -16,8 +16,8 @@ export interface IUserConfig  {
 
 export interface IUserStore {
   create(user: IUserConfig) : Promise<IApiResult>
-  loggedOff(): Promise<void>
-  loggedIn(user: IUserConfig) : Promise<boolean>
+  logoff(): Promise<void>
+  login(user: IUserConfig) : Promise<boolean>
   hasUrlAccess(url: string): boolean
 
   isLoggedIn: boolean
@@ -63,8 +63,10 @@ export const useUserStore : IUserStore = defineStore('user', () => {
   /**
    * set the current account to anon
    */
-  function loggedOff() {
+  function logoff() {
     _clear()
+    const Api = useApiStore()
+    Api.logoff()
   }
   _clear()
 
@@ -84,6 +86,25 @@ export const useUserStore : IUserStore = defineStore('user', () => {
         throw new Error(result.message)
       }
       Logger.log('create', result)
+      Api.login(result.body as ILoginResult)
+      _set(result)
+    } catch (e) {
+      Api.logoff()
+      throw new Error(e.message)
+    }
+    return true
+  }
+
+  async function login(user: IUserConfig): Promise<boolean> {
+    const Logger = useLoggerStore()
+    Logger.log('login user', user)
+    let Api = useApiStore()
+    try {
+      let result = await Api.post('auth', user)
+      if (result.isError) {
+        Api.logoff()
+        throw new Error(result.message)
+      }
       Api.login(result.body as ILoginResult)
       _set(result)
     } catch (e) {
@@ -158,8 +179,8 @@ export const useUserStore : IUserStore = defineStore('user', () => {
 
   return {
     create,
-    loggedOff,
-    loggedIn,
+    login,
+    logoff,
     hasUrlAccess,
 
     isLoggedIn,
